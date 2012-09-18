@@ -1,0 +1,34 @@
+#!/bin/bash                                                                       
+
+IFS=\"
+GSTLAUNCH=gst-launch-0.10
+ENCODER=lame
+ENCODEOPTIONS=preset=1001 quality=0
+INPUTEXTENSION=$1
+OUTPUTEXTENSION=mp3
+
+INPUTFILES=`find $2 -iname "*.$INPUTEXTENSION" -printf %p\"`
+
+usage() {
+    echo "Usage is $0 <extension> <path>"
+    echo "$0 will transcode all files with the specified extension"
+    echo "in the <path> directory, and all subdirectories"
+    echo
+    echo "Example: "
+    echo "$0 m4a Music"
+    echo "Will convert all the *.m4a files in the ./Music directory"
+    echo "and all it's subdirectories to .mp3 files"
+}
+
+if [[ $# != 2 ]] ; then
+usage ;
+exit ;
+fi
+
+for INPUT in $INPUTFILES ;
+do OUTPUT=`echo $INPUT | sed s/.$INPUTEXTENSION/.$OUTPUTEXTENSION/` ;
+echo "Converting \"$INPUT\" to \"$OUTPUT\"" ;
+$GSTLAUNCH filesrc location=\"$INPUT\" ! decodebin ! \
+$ENCODER $ENCODEOPTIONS ! filesink location=\"$OUTPUT\" ;
+done
+

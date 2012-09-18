@@ -1,0 +1,12 @@
+ln -f -s ~/Dropbox/linux/dotfiles/bashrc ~/.bashrc
+#ln -f -s ~/Dropbox/linux/dotfiles/conkyrc ~/.conkyrc
+#ln -f -s ~/Dropbox/linux/dotfiles/dircolors ~/.dircolors
+#ln -f -s ~/Dropbox/linux/dotfiles/easytag ~/.easytag
+#ln -f -s ~/Dropbox/linux/dotfiles/fonts ~/.fonts
+ln -f -s ~/Dropbox/linux/dotfiles/git-completion.sh ~/.git-completion.sh
+ln -f -s ~/Dropbox/linux/dotfiles/gitconfig ~/.gitconfig
+ln -f -s ~/Dropbox/linux/dotfiles/hgrc ~/.hgrc
+ln -f -s ~/Dropbox/linux/dotfiles/profile ~/.profile
+#ln -f -s ~/Dropbox/linux/dotfiles/ssh ~/.ssh
+#ln -f -s ~/Dropbox/linux/dotfiles/vim ~/.vim
+ln -f -s ~/Dropbox/linux/dotfiles/vimrc ~/.vimrc

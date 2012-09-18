@@ -1,0 +1,18 @@
+#!/bin/bash
+
+today=$(date +%Y%m%d)
+folder=/home/aldi/Downloads/$today
+
+echo ""
+if [ ! -d $folder ]; then
+    echo "creating $folder ..."
+    mkdir $folder
+else
+    echo "folder $folder exists"
+fi
+
+current=/home/aldi/Downloads/current
+
+echo "creating symlink ..."
+ln -s -f -T $folder $current
+echo ""

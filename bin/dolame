@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+
+for mp3file in /home/aldi/Music/Barry\ Likumahuwa/Good\ Spell\ \(2008\)/*
+do
+    lame -V0 "$mp3file" "${mp3file}_n"
+done

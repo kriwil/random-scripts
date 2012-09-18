@@ -1,0 +1,57 @@
+#!/usr/bin/python
+
+import os, sys
+import flac.metadata as metadata
+
+if len(sys.argv) != 2 and len(sys.argv) != 3:
+    print 'usage: \n\t flac2mp3.py source_directory [output_directory]'
+    sys.exit()
+    
+inputdir = sys.argv[1]
+
+if len(sys.argv) == 3:
+    outputdir = sys.argv[2]
+else:
+    outputdir = sys.argv[1]
+
+chain = metadata.Chain()
+it = metadata.Iterator()
+
+for root, dirs, files in os.walk(inputdir):
+    print 'processing' +root
+    destination = root.replace(inputdir,outputdir,1)
+    if not os.path.exists(destination):
+        os.makedirs(destination) 
+    for file in files:
+        if file.endswith('.flac'):
+            infile = root+'/'+file
+            outfile = destination+'/'+file.replace('.flac','.mp3')
+            if os.path.exists(outfile):
+                continue
+            chain.read(infile)
+            it.init(chain)
+            block = it.get_block()
+            while block.type != metadata.VORBIS_COMMENT:
+                it.next()
+                block = it.get_block()
+            comment_block = block.data.vorbis_comment
+            artist = title = album = genre = tracknumber = '""'
+            for i in range(comment_block.num_comments):
+                comment = comment_block.comments[i]
+                if comment.startswith('ARTIST'):
+                    artist = '"'+comment.split('=')[-1]+'"'
+                elif comment.startswith('TITLE'):
+                    title = '"'+comment.split('=')[-1]+'"'
+                elif comment.startswith('ALBUM'):
+                    album = '"'+comment.split('=')[-1]+'"'
+                elif comment.startswith('GENRE'):
+                    genre = '"'+comment.split('=')[-1]+'"'
+                elif comment.startswith('TRACKNUMBER'):
+                    tracknumber = '"'+comment.split('=')[-1]+'"'
+            # lets try quoting them in the command string instead of inserting \
+            # since there are other special characters
+            #infile = infile.replace(' ','\ ')
+            #outfile = outfile.replace(' ','\ ')
+            commandstring =  'flac -c -d "'+infile+'"| lame --tt '+title+' --ta '+artist+' --tl '+album+' --tg '+genre+' --tn '+tracknumber+' - "'+outfile+'"'
+            print commandstring
+            os.system(commandstring)

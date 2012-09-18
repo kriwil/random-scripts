@@ -1,0 +1,20 @@
+#!/usr/bin/python
+
+import os
+import shutil
+import sys
+
+tfn = ""
+
+filepath = sys.argv[1]
+t = filepath.split('.')
+f = open(filepath, 'r')
+os.mkdir(t[0])
+for line in f:
+	line = line.replace("\n","")
+	temp = line.split('//')
+	src = temp[1].replace('%20', ' ')
+	filename = temp[1].replace('%20', '_').split('/')
+	dest = './' + t[0] + '/' + filename[6]
+	shutil.copy(src, dest)
+

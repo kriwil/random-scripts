@@ -1,0 +1,1 @@
+PERL_SIGNALS=unsafe ttytter -ansi -notifytype=libnotify -notifies=dm,me,reply,search -verify -vcheck

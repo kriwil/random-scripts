@@ -1,4 +1,4 @@
 random-scripts
 ==============
 
-random scripts created for random stuffs
+random scripts collected and created for random stuffs.

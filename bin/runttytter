@@ -1,1 +1,1 @@
-ttytter -dostream -vcheck -ssl -ansi
+ttytter -dostream -vcheck -ssl -ansi -exts=pocket.pl,info.pl

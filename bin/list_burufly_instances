@@ -1,0 +1,1 @@
+list_instances -r ap-southeast-1 -H Groups,Hostname,IP,Type,Image,State -t | grep app-server-ports

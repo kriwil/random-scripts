@@ -32,7 +32,7 @@ BEGIN {
 	$command_line = $0; $0 = "TTYtter";
 	$TTYtter_VERSION = "2.1";
 	$TTYtter_PATCH_VERSION = 0;
-	$TTYtter_RC_NUMBER = 2; # non-zero for release candidate
+	$TTYtter_RC_NUMBER = 4; # non-zero for release candidate
 	# this is kludgy, yes.
 	$LANG = $ENV{'LANG'} || $ENV{'GDM_LANG'} || $ENV{'LC_CTYPE'} ||
 			$ENV{'ALL'};
@@ -1825,6 +1825,10 @@ print $stdout "*** invalid UTF-8: partial delete of a wide character?\n";
 			[ "user", "screen_name" ], # must always be first
 			[ "retweeted_status", "id_str" ],
 			[ "user", "geo_enabled" ],
+			[ "place", "id" ],
+			[ "place", "country_code" ],
+			[ "place", "full_name" ],
+			[ "place", "place_type" ],
 			[ "tag", "type" ],
 			[ "tag", "payload" ],
 		);
@@ -2894,7 +2898,8 @@ EOF
 		# to be TOS-compliant, we must try entities first to use
 		# t.co wrapped links. this is a tiny version of /entities.
 		unless ($notco) {
-			my $id = $tweet->{'id_str'};
+			my $id = $tweet->{'retweeted_status'}->{'id_str'}
+				|| $tweet->{'id_str'};
 			my $hash;
 
 			# only fetch if we have to. if we already fetched
@@ -2927,11 +2932,11 @@ EOF
 						&openurl($u1);
 						$didprint++;
 					}
-					print $stdout
-					"-- sorry, couldn't find any URL.\n"
-						if (!$didprint);
-					return 0;
 				}
+				print $stdout
+				"-- sorry, couldn't find any URL.\n"
+					if (!$didprint);
+				return 0;
 			}
 			print $stdout
 				"-- unable to use t.co URLs, using fallback\n";
@@ -3828,6 +3833,7 @@ $interactive = $previous_last_id = $we_got_signal = 0;
 $suspend_output = -1;
 $stream_failure = 0;
 $dm_first_time = ($dmpause) ? 1 : 0;
+$stuck_stdin = 0;
 
 # tell the foreground we are ready
 kill $SIGUSR2, $parent;
@@ -3997,7 +4003,17 @@ EOF
 		goto RESTART_SELECT if(vec($rout, fileno(STDIN), 1) != 1);
 		print $stdout "-- waiting for data ", scalar localtime, "\n"
 			if ($superverbose);
-		goto RESTART_SELECT if(sysread(STDIN, $rout, 20) != 20);
+		if(sysread(STDIN, $rout, 20) != 20) {
+			# if we get repeated "ready" but no data on STDIN,
+			# like the streaming buffer, we probably lost our
+			# IPC and we should die here.
+			if (++$stuck_stdin > 100) {
+				print $stdout "parent is dead; we die too\n";
+				kill 9,$$;
+			}
+			goto RESTART_SELECT;
+		}
+		$stuck_stdin = 0;
 		# background communications central command code
 		# we received a command from the console, so let's look at it.
 		print $stdout "-- command received ", scalar
@@ -4018,6 +4034,10 @@ EOF
 		($key->{'user'}->{'geo_enabled'} || "false") . " ".
 		($key->{'geo'}->{'coordinates'}->[0]). " ".
 		($key->{'geo'}->{'coordinates'}->[1]). " ".
+		$key->{'place'}->{'id'} . " ".
+		$key->{'place'}->{'country_code'} ." ".
+		$key->{'place'}->{'place_type'} . " ".
+		unpack("${pack_magic}H*", $key->{'place'}->{'full_name'})." ".
 		$key->{'tag'}->{'type'}. " ". # NO SPACES!
 		unpack("${pack_magic}H*", $key->{'tag'}->{'payload'}). " ".
 		($key->{'retweet_count'} || "0") . " " .
@@ -4239,9 +4259,11 @@ sub update_effpause {
 						$rate_limit_rate)
 					if (scalar(@listlist) > 1);
 
-					print $stdout
-"-- rate limit rate failure: using 180 second fallback\n"
-					if (!$effpause);
+					if (!$effpause) {
+						print $stdout
+"-- rate limit rate failure: using 180 second fallback\n";
+						$effpause = 180;
+					}
 
 					# we don't go under sixty.
 					$effpause = 60 if ($effpause < 60);
@@ -5281,10 +5303,11 @@ sub standardtweet {
 	# prepend screen name "badges"
 	$sn = "\@$sn" if ($ref->{'in_reply_to_status_id_str'} > 0);
 	$sn = "+$sn" if ($ref->{'user'}->{'geo_enabled'} eq 'true' &&
-		$ref->{'geo'}->{'coordinates'}->[0] ne 'undef' &&
+		(($ref->{'geo'}->{'coordinates'}->[0] ne 'undef' &&
 		length($ref->{'geo'}->{'coordinates'}->[0]) &&
 		$ref->{'geo'}->{'coordinates'}->[1] ne 'undef' &&
-		length($ref->{'geo'}->{'coordinates'}->[0]));
+		length($ref->{'geo'}->{'coordinates'}->[0])) ||
+		length($ref->{'geo'}->{'place'}->{'id'})));
 	$sn = "%$sn" if (length($ref->{'retweeted_status'}->{'id_str'}));
 	$sn = "*$sn" if ($ref->{'source'} =~ /TTYtter/ && $ttytteristas);
 	# prepend list information, if this tweet originated from a list
@@ -5365,22 +5388,20 @@ sub standardevent {
 	my $g = '>>> ';
 	my $verb = &descape($ref->{'event'});
 	
-	# @episod has promised me he will document all of the events.
-	# still waiting ...
+	# https://dev.twitter.com/docs/streaming-apis/messages
 
-	if (length($verb)) { # delete is different.
+	if (length($verb)) { # see below for server-level events
 		my $tar_sn = '@'.&descape($ref->{'target'}->{'screen_name'});
 		my $sou_sn = '@'.&descape($ref->{'source'}->{'screen_name'});
 		if ($verb eq 'favorite' || $verb eq 'unfavorite') {
-			my $txt = &descape($ref->{'target_object'}->{'text'});
+			my $rto = &destroy_all_tco($ref->{'target_object'});
+			my $txt = &descape($rto->{'text'});
 			$g .=
 		"$sou_sn just ${verb}d ${tar_sn}'s tweet: \"$txt\"";
 		} elsif ($verb eq 'follow') {
 			$g .= "$sou_sn is now following $tar_sn";
 		} elsif ($verb eq 'user_update') {
 		$g .= "$sou_sn updated their profile (/whois $sou_sn to see)";
-#TODO
-# these need to be fleshed out
 		} elsif ($verb eq 'list_member_added') {
 			$g .= "$sou_sn added $tar_sn to a list";
 		} elsif ($verb eq 'list_member_removed') {
@@ -5395,12 +5416,20 @@ sub standardevent {
 			$g .= "$sou_sn destroyed a list";
 		} elsif ($verb eq 'list_updated') {
 			$g .= "$sou_sn updated a list";
+		} elsif ($verb eq 'block' || $verb eq 'unblock') {
+			$g .= "$sou_sn ${verb}ed $tar_sn ($tar_sn is not ".
+				"notified)";
 		} else {
 			# try to handle new types of events we don't
-			# recognize yet
+			# recognize yet.
 			$verb .= ($verb =~ /e$/) ? 'd' : 'ed';
 			$g .= "$sou_sn $verb $tar_sn (basic)";
 		}
+
+	# server events ("public stream messages") are handled differently.
+	# we support almost all except for the ones that are irrelevant to
+	# this medium.
+
 	} elsif ($ref->{'delete'}) {
 		# this is the best we can do -- it's already on the screen!
 		# we don't want to make it easy which tweet it is, since that
@@ -5408,6 +5437,22 @@ sub standardevent {
 		$g .=
 		"tweet ID# ".$ref->{'delete'}->{'status'}->{'id_str'}.
 			" deleted by server";
+	} elsif ($ref->{'status_withheld'}) {
+		# Twitter doesn't document id_str as available here. check.
+		if (!length($ref->{'status_withheld'}->{'id_str'})) {
+			# do nothing right now
+		} else { $g .=
+		"tweet ID# ".$ref->{'status_withheld'}->{'id_str'}.
+			" censored by server in your country";
+		}
+	} elsif ($ref->{'user_withheld'}) {
+		$g .=
+		"user ID# ".$ref->{'user_withheld'}->{'user_id'}.
+			" censored by server in your country";
+	} elsif ($ref->{'disconnect'}) {
+		$g .=
+		"DISCONNECTED BY SERVER (".$ref->{'disconnect'}->{'code'}.
+			"); will retry: ".$ref->{'disconnect'}->{'reason'};
 	} else {
 		# we have no idea what this is. just BS our way out.
 		$g .= "unknown server event received (non-fatal)";
@@ -6013,13 +6058,18 @@ sub get_tweet {
 		$w->{'user'}->{'geo_enabled'},
 		$w->{'geo'}->{'coordinates'}->[0],
 		$w->{'geo'}->{'coordinates'}->[1],
+		$w->{'place'}->{'id'},
+		$w->{'place'}->{'country_code'},
+		$w->{'place'}->{'place_type'},
+		$w->{'place'}->{'full_name'},
 		$w->{'tag'}->{'type'},
 		$w->{'tag'}->{'payload'},
 		$w->{'retweet_count'}, 
 		$w->{'user'}->{'screen_name'}, $w->{'created_at'},
-			$l) = split(/\s/, $k, 13);
+			$l) = split(/\s/, $k, 17);
 	($w->{'source'}, $k) = split(/\|/, $l, 2);
 	$w->{'text'} = pack("H*", $k);
+	$w->{'place'}->{'full_name'} = pack("H*",$w->{'place'}->{'full_name'});
 	$w->{'tag'}->{'payload'} = pack("H*", $w->{'tag'}->{'payload'});
 	return undef if (!length($w->{'text'})); # unpossible
 	$w->{'created_at'} =~ s/_/ /g;
@@ -7038,7 +7088,8 @@ sub normalizejson {
 	if (!$nonewrts && ($rt = $i->{'retweeted_status'})) {
 		# reconstruct the RT in a "canonical" format
 		# without truncation, but detco it first
-		$i->{'retweeted_status'} = &destroy_all_tco($rt);
+		$rt = &destroy_all_tco($rt);
+		$i->{'retweeted_status'} = $rt;
 		$i->{'text'} =
 		"RT \@$rt->{'user'}->{'screen_name'}" . ': ' . $rt->{'text'};
 	}

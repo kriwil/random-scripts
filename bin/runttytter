@@ -1,1 +1,2 @@
-ttytter -dostream -vcheck -ssl -ansi -exts=pocket.pl,info.pl
+#!/bin/bash
+cd $HOME/bin && ttytter -dostream -vcheck -ssl -ansi -exts=pocket.pl,info.pl && cd $HOME

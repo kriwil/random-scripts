@@ -1,0 +1,13 @@
+#!/bin/sh
+tmux new-session -d -s burufly
+
+tmux new-window -t burufly:2
+tmux new-window -t burufly:3
+tmux new-window -t burufly:4
+tmux new-window -t burufly:5
+tmux new-window -t burufly:6
+
+tmux select-window -t burufly:1
+tmux split-window -h -t burufly:1 "runttytter"
+tmux split-window -h -t burufly:2
+tmux attach-session -t burufly

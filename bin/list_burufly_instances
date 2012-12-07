@@ -1,1 +1,1 @@
-list_instances -r ap-southeast-1 -H Groups,Hostname,IP,Type,Image,State -t
+list_instances -r ap-southeast-1 -H Groups,IP,Type,Image,State -t

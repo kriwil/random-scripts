@@ -32,7 +32,7 @@ BEGIN {
 	$command_line = $0; $0 = "TTYtter";
 	$TTYtter_VERSION = "2.1";
 	$TTYtter_PATCH_VERSION = 0;
-	$TTYtter_RC_NUMBER = 4; # non-zero for release candidate
+	$TTYtter_RC_NUMBER = 5; # non-zero for release candidate
 	# this is kludgy, yes.
 	$LANG = $ENV{'LANG'} || $ENV{'GDM_LANG'} || $ENV{'LC_CTYPE'} ||
 			$ENV{'ALL'};
@@ -77,7 +77,7 @@ BEGIN {
 		getuliurl getufliurl dmsenturl rturl rtsbyurl dmidurl
 		statusliurl followliurl leaveliurl followersurl
 		oauthurl oauthauthurl oauthaccurl oauthbase wtrendurl
-		atrendurl frupdurl lookupidurl
+		atrendurl frupdurl lookupidurl rtsofmeurl
 	); %opts_secret = map { $_ => 1} qw(
 		superverbose ttytteristas
 	); %opts_comma_delimit = map { $_ => 1 } qw(
@@ -103,7 +103,7 @@ BEGIN {
 		getuliurl getufliurl dmsenturl rturl rtsbyurl wtrendurl
 		statusliurl followliurl leaveliurl dmidurl nostreamreplies
 		frupdurl filterusers filterats filterrts filterflags
-		filteratonly nofilter
+		filteratonly nofilter rtsofmeurl
 	); %opts_others = map { $_ => 1 } qw(
 		lynx curl seven silent maxhist noansi hold status
 		daemon timestamp twarg user anonymous script readline
@@ -669,6 +669,7 @@ $delurl ||= "${apibase}/statuses/destroy/%I.json";
 
 $rturl ||= "${apibase}/statuses/retweet";
 $rtsbyurl ||= "${apibase}/statuses/retweets/%I.json";
+$rtsofmeurl ||= "${apibase}/statuses/retweets_of_me.json";
 
 $wurl ||= "${apibase}/users/show.json";
 
@@ -3065,6 +3066,22 @@ m#^/(un)?f(rt|retweet|a|av|ave|avorite|avourite)? ([zZ]?[a-zA-Z]?[0-9]+)$#) {
 		goto TWEETPRINT; # fugly! FUGLY!
 	}
 
+        if (m#^/(re)?rts?of?me?(\s+\+\d+)?$# && !$nonewrts) {
+#TODO
+# when more fields are added, integrate them over the JSON_ref
+                my $mode = $1;
+                my $countmaybe = $2;
+                $countmaybe =~ s/[^\d]//g if (length($countmaybe));
+                $countmaybe += 0;
+                
+                my $my_json_ref = &grabjson($rtsofmeurl, 0, 0, $countmaybe);
+                &dt_tdisplay($my_json_ref, "rtsofme");
+                if ($mode eq 're') {
+                        $_ = '/re'; # and fall through ...
+                } else {
+                        return 0;
+                }
+        }
 	if (m#^/rts?of\s+([zZ]?[a-zA-Z]?[0-9]+)$# && !$nonewrts) {
 		my $code = lc($1);
 		my $tweet = &get_tweet($code);
@@ -5307,7 +5324,7 @@ sub standardtweet {
 		length($ref->{'geo'}->{'coordinates'}->[0]) &&
 		$ref->{'geo'}->{'coordinates'}->[1] ne 'undef' &&
 		length($ref->{'geo'}->{'coordinates'}->[0])) ||
-		length($ref->{'geo'}->{'place'}->{'id'})));
+		length($ref->{'place'}->{'id'})));
 	$sn = "%$sn" if (length($ref->{'retweeted_status'}->{'id_str'}));
 	$sn = "*$sn" if ($ref->{'source'} =~ /TTYtter/ && $ttytteristas);
 	# prepend list information, if this tweet originated from a list
@@ -5393,6 +5410,16 @@ sub standardevent {
 	if (length($verb)) { # see below for server-level events
 		my $tar_sn = '@'.&descape($ref->{'target'}->{'screen_name'});
 		my $sou_sn = '@'.&descape($ref->{'source'}->{'screen_name'});
+		
+		my $tar_list_name = '';
+		my $tar_list_desc = '';
+		
+		# For all verbs starting with "list", get name and desc
+		if ($verb =~ m/^list/ ) {
+			$tar_list_name = &descape($ref->{'target_object'}->{'full_name'});
+			$tar_list_desc = &descape($ref->{'target_object'}->{'description'});
+		}
+		
 		if ($verb eq 'favorite' || $verb eq 'unfavorite') {
 			my $rto = &destroy_all_tco($ref->{'target_object'});
 			my $txt = &descape($rto->{'text'});
@@ -5403,22 +5430,26 @@ sub standardevent {
 		} elsif ($verb eq 'user_update') {
 		$g .= "$sou_sn updated their profile (/whois $sou_sn to see)";
 		} elsif ($verb eq 'list_member_added') {
-			$g .= "$sou_sn added $tar_sn to a list";
+			$g .= "$sou_sn added $tar_sn to the list \"$tar_list_desc\" ($tar_list_name)";
 		} elsif ($verb eq 'list_member_removed') {
-			$g .= "$sou_sn removed $tar_sn from a list";
+			$g .= "$sou_sn removed $tar_sn from the list \"$tar_list_desc\" ($tar_list_name)";
 		} elsif ($verb eq 'list_user_subscribed') {
-			$g .= "$sou_sn is now following a list from $tar_sn";
+			$g .= "$sou_sn is now following the list \"$tar_list_desc\" ($tar_list_name) from $tar_sn";
 		} elsif ($verb eq 'list_user_unsubscribed') {
-		$g .= "$sou_sn is no longer following a list from $tar_sn";
+		$g .= "$sou_sn is no longer following the list \"$tar_list_desc\" ($tar_list_name) from $tar_sn";
 		} elsif ($verb eq 'list_created') {
-			$g .= "$sou_sn created a new list";
+			$g .= "$sou_sn created the new list \"$tar_list_desc\" ($tar_list_name)";
 		} elsif ($verb eq 'list_destroyed') {
-			$g .= "$sou_sn destroyed a list";
+			$g .= "$sou_sn destroyed the list \"$tar_list_desc\" ($tar_list_name)";
 		} elsif ($verb eq 'list_updated') {
-			$g .= "$sou_sn updated a list";
+			$g .= "$sou_sn updated the list \"$tar_list_desc\" ($tar_list_name)";
 		} elsif ($verb eq 'block' || $verb eq 'unblock') {
 			$g .= "$sou_sn ${verb}ed $tar_sn ($tar_sn is not ".
 				"notified)";
+		} elsif ($verb eq 'access_revoked') {
+			$g .= "$sou_sn revoked oAuth access to $tar_sn";
+		} elsif ($verb eq 'access_unrevoked') {
+			$g .= "$sou_sn restored oAuth access to $tar_sn";
 		} else {
 			# try to handle new types of events we don't
 			# recognize yet.

@@ -1,0 +1,1 @@
+sudo chmod g+w /var/run/mpd && sudo service mpd restart

@@ -1,3 +1,3 @@
 for host in `list_instances -r ap-southeast-1 -t | grep app-server-ports | awk '{print $4}'`; do
-    ssh aldi@$host
+    echo $host
 done

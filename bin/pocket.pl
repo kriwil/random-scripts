@@ -45,7 +45,7 @@ $addaction = sub {
 		$url =  $twurl if ($url eq '');
 
 		#my $purl = "https://readitlaterlist.com/v2/add?username=" . $cred[0] . "&password=" . $cred[1] . "&apikey=" . $cred[2]  . "&url=" . $url . "&title=" . uri_escape($tweet->{'text'});
-		my $purl = "https://readitlaterlist.com/v2/add?username=" . $cred[0] . "&password=" . $cred[1] . "&apikey=c4bIbA99g423fX70lkdf26fd79p6y416&url=" . $url . "&title=" . uri_escape($text);
+		my $purl = "https://readitlaterlist.com/v2/add?username=" . $cred[0] . "&password=" . $cred[1] . "&apikey=c4bIbA99g423fX70lkdf26fd79p6y416&url=" . $url . "&title=" . uri_escape_utf8($text);
 		
 		my $err = `curl -s \"$purl\"`;
 

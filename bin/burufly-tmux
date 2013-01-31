@@ -6,7 +6,7 @@ tmux -2 new-window -t burufly:3
 tmux -2 new-window -t burufly:4
 tmux -2 new-window -t burufly:5
 tmux -2 new-window -t burufly:6 "runttytter"
-tmux -2 new-window -t burufly:7 "sudo apt-get update && sudo apt-get upgrade -y"
+tmux -2 new-window -t burufly:7 "fixmpd && sudo apt-get update && sudo apt-get upgrade -y"
 
 tmux -2 select-window -t burufly:7
 # tmux -2 split-window -h -t burufly:1 "runttytter"

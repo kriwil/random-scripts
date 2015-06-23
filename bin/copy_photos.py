@@ -43,7 +43,7 @@ def is_image(name):
 
 def process_movie(root, name):
     path = "{}/{}".format(root, name)
-    newpath = VIDEO_DIR
+    newpath = "{}{}".format(VIDEO_DIR, name)
 
     if not os.path.exists(newpath):
         print(path, newpath)

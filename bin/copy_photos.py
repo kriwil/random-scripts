@@ -1,5 +1,8 @@
 """
 copy images to folder based on EXIT date
+
+usage: python copy_photos.py /path/to/source/
+
 requirements:
     python3
     exifread

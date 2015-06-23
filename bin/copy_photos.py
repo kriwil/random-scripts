@@ -42,8 +42,9 @@ def process_movie(root, name):
     path = "{}/{}".format(root, name)
     newpath = VIDEO_DIR
 
-    print(path, newpath)
-    copy(path, newpath)
+    if not os.path.exists(newpath):
+        print(path, newpath)
+        copy(path, newpath)
 
 
 def process_image(root, name):

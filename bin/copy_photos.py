@@ -16,6 +16,7 @@ import exifread
 
 DIR_FORMAT = '%Y-%m-%d'
 BASE_DIR = '/Volumes/MACDATA/Pictures/new/'
+VIDEO_DIR = '{}{}/'.format(BASE_DIR, 'videos')
 NODATE_DIR = '{}{}/'.format(BASE_DIR, 'nodate')
 
 
@@ -38,7 +39,11 @@ def is_image(name):
 
 
 def process_movie(root, name):
-    pass
+    path = "{}/{}".format(root, name)
+    newpath = VIDEO_DIR
+
+    print(path, newpath)
+    copy(path, newpath)
 
 
 def process_image(root, name):
@@ -51,10 +56,11 @@ def process_image(root, name):
 
         newpath = "{}{}".format(newdir, name)
     else:
-        newpath = NODATE_DIR
+        newpath = "{}{}".format(NODATE_DIR, name)
 
-    print(path, newpath)
-    copy(path, newpath)
+    if not os.path.exists(newpath):
+        print(path, newpath)
+        copy(path, newpath)
 
 
 def main(argv):
@@ -62,7 +68,8 @@ def main(argv):
     for root, dirs, files in os.walk(path):
         for name in files:
             if is_movie(name):
-                process_movie(root, name)
+                with ThreadPoolExecutor(max_workers=4) as e:
+                    process_movie(root, name)
             elif is_image(name):
                 with ThreadPoolExecutor(max_workers=4) as e:
                     process_image(root, name)
@@ -77,16 +84,19 @@ def parse_date(date_str):
 
 def get_date(name):
     with open(name, 'rb') as f:
-        tags = exifread.process_file(f)
-        datetime_keys = filter(lambda x: 'DATETIME' in x.upper(), tags.keys())
+        try:
+            tags = exifread.process_file(f)
+            datetime_keys = filter(lambda x: 'DATETIME' in x.upper(), tags.keys())
 
-        dates = [tags.get(key) for key in datetime_keys]
-        dates = filter(None, dates)
-        dates = [parse_date(str(dt)) for dt in dates]
-        if not dates:
-            return None
+            dates = [tags.get(key) for key in datetime_keys]
+            dates = filter(None, dates)
+            dates = [parse_date(str(dt)) for dt in dates]
+            if not dates:
+                return None
 
-        return min(dates)
+            return min(dates)
+        except:
+            pass
     return None
 
 

@@ -18,8 +18,8 @@ import exifread
 
 
 DIR_FORMAT = '%Y-%m-%d'
-BASE_DIR = '/Volumes/MACDATA/Pictures/new/'
-VIDEO_DIR = '{}{}/'.format(BASE_DIR, 'videos')
+BASE_DIR = '/Volumes/MACDATA/Pictures/Masters/'
+VIDEO_DIR = '/Volumes/MACDATA/Pictures/Videos/'
 NODATE_DIR = '{}{}/'.format(BASE_DIR, 'nodate')
 
 
@@ -42,8 +42,17 @@ def is_image(name):
 
 
 def process_movie(root, name):
+    nodate_dir = "{}{}/".format(VIDEO_DIR, 'nodate')
     path = "{}/{}".format(root, name)
-    newpath = "{}{}".format(VIDEO_DIR, name)
+    dt = get_date(path)
+    if dt:
+        newdir = "{}{}/".format(VIDEO_DIR, dt.strftime(DIR_FORMAT))
+        if not os.path.isdir(newdir):
+            os.mkdir(newdir)
+
+        newpath = "{}{}".format(newdir, name)
+    else:
+        newpath = "{}{}".format(nodate_dir, name)
 
     if not os.path.exists(newpath):
         print(path, newpath)

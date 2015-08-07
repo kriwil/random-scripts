@@ -1,1 +1,0 @@
-ssh -i ~/Dropbox/Backup/aws/ec2-key.pem ubuntu@ec2-175-41-162-19.ap-southeast-1.compute.amazonaws.com

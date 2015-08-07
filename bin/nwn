@@ -1,4 +1,0 @@
-#!/bin/bash
-cd /home/aldi/Games/nwn
-./nwn
-cd

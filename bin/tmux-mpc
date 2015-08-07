@@ -1,3 +1,0 @@
-#!/bin/sh
-#mpc | head -1 | sed 's/.*-.//' | sed 's/^volume:.*//' | cut -c 1-20
-mpc | head -1

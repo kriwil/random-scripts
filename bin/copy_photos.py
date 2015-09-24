@@ -5,7 +5,9 @@ usage: python copy_photos.py /path/to/source/
 
 requirements:
     python3
+    arrow
     exifread
+    pymediainfo -- mediainfo
 """
 
 from concurrent.futures import ThreadPoolExecutor
@@ -14,12 +16,14 @@ from shutil import copy
 import os
 import sys
 
+from pymediainfo import MediaInfo
+import arrow
 import exifread
 
 
 DIR_FORMAT = '%Y-%m-%d'
-BASE_DIR = '/Volumes/MACDATA/Pictures/Masters/'
-VIDEO_DIR = '/Volumes/MACDATA/Pictures/Videos/'
+BASE_DIR = '/Volumes/OSXDATA/Pictures/Masters/'
+VIDEO_DIR = '/Volumes/OSXDATA/Pictures/Videos/'
 NODATE_DIR = '{}{}/'.format(BASE_DIR, 'nodate')
 
 
@@ -44,7 +48,8 @@ def is_image(name):
 def process_movie(root, name):
     nodate_dir = "{}{}/".format(VIDEO_DIR, 'nodate')
     path = "{}/{}".format(root, name)
-    dt = get_date(path)
+
+    dt = get_movie_date(path)
     if dt:
         newdir = "{}{}/".format(VIDEO_DIR, dt.strftime(DIR_FORMAT))
         if not os.path.isdir(newdir):
@@ -112,6 +117,24 @@ def get_date(name):
             pass
     return None
 
+
+def parse_movie_date(dt):
+    dt = dt.replace('UTC', '')
+    return arrow.get(dt.strip(), 'YYYY-MM-DD HH:mm:ss').to('Asia/Jakarta').date()
+
+
+def get_movie_date(path):
+    media_info = MediaInfo.parse(path)
+    for track in media_info.tracks:
+        dt = track.encoded_date
+        if dt:
+            return parse_movie_date(dt)
+
+        dt = track.encoded_date
+        if dt:
+            return parse_movie_date(dt)
+
+    return None
 
 if __name__ == "__main__":
     main(sys.argv)

@@ -11,7 +11,7 @@ requirements:
 """
 
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date
+from datetime import date, datetime
 from shutil import copy
 import os
 import sys
@@ -97,7 +97,11 @@ def parse_date(date_str):
     dt, tm = date_str.split(' ')
     date_args = dt.split(':')
     date_args = map(int, date_args)
-    return date(*date_args)
+
+    time_args = tm.split(':')
+    time_args = map(int, time_args)
+    datetime_args = list(date_args) + list(time_args)
+    return arrow.get(datetime(*datetime_args), 'Asia/Jakarta')
 
 
 def get_date(name):
@@ -120,16 +124,12 @@ def get_date(name):
 
 def parse_movie_date(dt):
     dt = dt.replace('UTC', '')
-    return arrow.get(dt.strip(), 'YYYY-MM-DD HH:mm:ss').to('Asia/Jakarta').date()
+    return arrow.get(dt.strip(), 'YYYY-MM-DD HH:mm:ss').to('Asia/Jakarta')
 
 
 def get_movie_date(path):
     media_info = MediaInfo.parse(path)
     for track in media_info.tracks:
-        dt = track.encoded_date
-        if dt:
-            return parse_movie_date(dt)
-
         dt = track.encoded_date
         if dt:
             return parse_movie_date(dt)

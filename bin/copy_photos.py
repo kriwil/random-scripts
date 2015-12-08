@@ -25,6 +25,7 @@ DIR_FORMAT = '%Y-%m-%d'
 BASE_DIR = '/Volumes/OSXDATA/Pictures/Masters/'
 VIDEO_DIR = '/Volumes/OSXDATA/Pictures/Videos/'
 NODATE_DIR = '{}{}/'.format(BASE_DIR, 'nodate')
+FILE_FORMAT = '%Y%m%d%H%M%S%f'
 
 
 def is_movie(name):
@@ -45,19 +46,34 @@ def is_image(name):
     ])
 
 
+def get_new_name(dt, name):
+    if dt:
+        name_prefix = dt.strftime(FILE_FORMAT)
+    else:
+        name_prefix = "NONAME"
+
+    if name.startswith(name_prefix):
+        name_prefix = ""
+    else:
+        name_prefix = "{}_".format(name_prefix)
+
+    new_name = "{}{}".format(name_prefix, name)
+    return new_name
+
+
 def process_movie(root, name):
     nodate_dir = "{}{}/".format(VIDEO_DIR, 'nodate')
     path = "{}/{}".format(root, name)
-
     dt = get_movie_date(path)
+    new_name = get_new_name(dt, name)
+
     if dt:
         newdir = "{}{}/".format(VIDEO_DIR, dt.strftime(DIR_FORMAT))
         if not os.path.isdir(newdir):
             os.mkdir(newdir)
-
-        newpath = "{}{}".format(newdir, name)
+        newpath = "{}{}".format(newdir, new_name)
     else:
-        newpath = "{}{}".format(nodate_dir, name)
+        newpath = "{}{}".format(nodate_dir, new_name)
 
     if not os.path.exists(newpath):
         print(path, newpath)
@@ -67,14 +83,16 @@ def process_movie(root, name):
 def process_image(root, name):
     path = "{}/{}".format(root, name)
     dt = get_date(path)
+    new_name = get_new_name(dt, name)
+
     if dt:
         newdir = "{}{}/".format(BASE_DIR, dt.strftime(DIR_FORMAT))
         if not os.path.isdir(newdir):
             os.mkdir(newdir)
 
-        newpath = "{}{}".format(newdir, name)
+        newpath = "{}{}".format(newdir, new_name)
     else:
-        newpath = "{}{}".format(NODATE_DIR, name)
+        newpath = "{}{}".format(NODATE_DIR, new_name)
 
     if not os.path.exists(newpath):
         print(path, newpath)

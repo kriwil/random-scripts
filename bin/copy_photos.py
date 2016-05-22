@@ -50,13 +50,14 @@ def get_new_name(dt, name):
     if dt:
         name_prefix = dt.strftime(FILE_FORMAT)
     else:
-        name_prefix = "NONAME"
+        name_prefix = "00000000000000"
 
     if name.startswith(name_prefix):
         name_prefix = ""
     else:
         name_prefix = "{}_".format(name_prefix)
 
+    name = name.replace("NONAME_", "")
     new_name = "{}{}".format(name_prefix, name)
     return new_name
 
@@ -123,6 +124,7 @@ def parse_date(date_str):
 
 
 def get_date(name):
+    dt = None
     with open(name, 'rb') as f:
         try:
             tags = exifread.process_file(f)
@@ -131,13 +133,16 @@ def get_date(name):
             dates = [tags.get(key) for key in datetime_keys]
             dates = filter(None, dates)
             dates = [parse_date(str(dt)) for dt in dates]
-            if not dates:
-                return None
+            if dates:
+                return min(dates)
 
-            return min(dates)
         except:
             pass
-    return None
+
+    # if not dt:
+    #     created_time = datetime.fromtimestamp(os.path.getctime(name))
+    #     dt = arrow.get(created_time, 'Asia/Jakarta')
+    return dt
 
 
 def parse_movie_date(dt):
@@ -146,13 +151,19 @@ def parse_movie_date(dt):
 
 
 def get_movie_date(path):
+    dt = None
     media_info = MediaInfo.parse(path)
     for track in media_info.tracks:
         dt = track.encoded_date
         if dt:
             return parse_movie_date(dt)
 
-    return None
+    # created_time = datetime.fromtimestamp(os.path.getctime(path))
+    # dt = arrow.get(created_time, 'Asia/Jakarta')
+    return dt
 
 if __name__ == "__main__":
-    main(sys.argv)
+    if not sys.argv:
+        print("python copy_photos.py ./")
+    else:
+        main(sys.argv)

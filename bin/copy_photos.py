@@ -21,29 +21,34 @@ import arrow
 import exifread
 
 
-DIR_FORMAT = '%Y-%m-%d'
-BASE_DIR = '/Volumes/OSXDATA/Pictures/Masters/'
-VIDEO_DIR = '/Volumes/OSXDATA/Pictures/Videos/'
-NODATE_DIR = '{}{}/'.format(BASE_DIR, 'nodate')
-FILE_FORMAT = '%Y%m%d%H%M%S%f'
+DIR_FORMAT = "%Y-%m-%d"
+PICTURE_DIR = "/media/aldi/DATA/Pictures/"
+BASE_DIR = "{}Masters/".format(PICTURE_DIR)
+VIDEO_DIR = "{}Videos/".format(PICTURE_DIR)
+NODATE_DIR = "{}{}/".format(BASE_DIR, "nodate")
+FILE_FORMAT = "%Y%m%d%H%M%S%f"
 
 
 def is_movie(name):
-    return any([
-        name.upper().endswith('AVI'),
-        name.upper().endswith('MOV'),
-        name.upper().endswith('MP4'),
-    ])
+    return any(
+        [
+            name.upper().endswith("AVI"),
+            name.upper().endswith("MOV"),
+            name.upper().endswith("MP4"),
+        ]
+    )
 
 
 def is_image(name):
-    return any([
-        name.upper().endswith('JPG'),
-        name.upper().endswith('JPEG'),
-        name.upper().endswith('PNG'),
-        name.upper().endswith('TIFF'),
-        name.upper().endswith('GIF'),
-    ])
+    return any(
+        [
+            name.upper().endswith("JPG"),
+            name.upper().endswith("JPEG"),
+            name.upper().endswith("PNG"),
+            name.upper().endswith("TIFF"),
+            name.upper().endswith("GIF"),
+        ]
+    )
 
 
 def get_new_name(dt, name):
@@ -63,7 +68,7 @@ def get_new_name(dt, name):
 
 
 def process_movie(root, name):
-    nodate_dir = "{}{}/".format(VIDEO_DIR, 'nodate')
+    nodate_dir = "{}{}/".format(VIDEO_DIR, "nodate")
     path = "{}/{}".format(root, name)
     dt = get_movie_date(path)
     new_name = get_new_name(dt, name)
@@ -113,22 +118,22 @@ def main(argv):
 
 
 def parse_date(date_str):
-    dt, tm = date_str.split(' ')
-    date_args = dt.split(':')
+    dt, tm = date_str.split(" ")
+    date_args = dt.split(":")
     date_args = map(int, date_args)
 
-    time_args = tm.split(':')
+    time_args = tm.split(":")
     time_args = map(int, time_args)
     datetime_args = list(date_args) + list(time_args)
-    return arrow.get(datetime(*datetime_args), 'Asia/Jakarta')
+    return arrow.get(datetime(*datetime_args), "Asia/Jakarta")
 
 
 def get_date(name):
     dt = None
-    with open(name, 'rb') as f:
+    with open(name, "rb") as f:
         try:
             tags = exifread.process_file(f)
-            datetime_keys = filter(lambda x: 'DATETIME' in x.upper(), tags.keys())
+            datetime_keys = filter(lambda x: "DATETIME" in x.upper(), tags.keys())
 
             dates = [tags.get(key) for key in datetime_keys]
             dates = filter(None, dates)
@@ -146,8 +151,8 @@ def get_date(name):
 
 
 def parse_movie_date(dt):
-    dt = dt.replace('UTC', '')
-    return arrow.get(dt.strip(), 'YYYY-MM-DD HH:mm:ss').to('Asia/Jakarta')
+    dt = dt.replace("UTC", "")
+    return arrow.get(dt.strip(), "YYYY-MM-DD HH:mm:ss").to("Asia/Jakarta")
 
 
 def get_movie_date(path):
@@ -161,6 +166,7 @@ def get_movie_date(path):
     # created_time = datetime.fromtimestamp(os.path.getctime(path))
     # dt = arrow.get(created_time, 'Asia/Jakarta')
     return dt
+
 
 if __name__ == "__main__":
     if not sys.argv:

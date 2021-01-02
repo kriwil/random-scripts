@@ -22,7 +22,7 @@ import exifread
 
 
 DIR_FORMAT = "%Y-%m-%d"
-PICTURE_DIR = "/media/aldi/DATA/Pictures/"
+PICTURE_DIR = "/mnt/d/Pictures/"
 BASE_DIR = "{}Masters/".format(PICTURE_DIR)
 VIDEO_DIR = "{}Videos/".format(PICTURE_DIR)
 NODATE_DIR = "{}{}/".format(BASE_DIR, "nodate")
